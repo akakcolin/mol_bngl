@@ -1,0 +1,39 @@
+begin molecule types
+  ISOPS(cooh!1,cooh!2)
+  TMP(oh!1,oh!2,oh!3)
+  PG(oh!1,oh!2)
+end molecule types
+
+begin seed species
+  ISOPS 100
+  TMP 100
+  PG 100
+end seed species
+
+begin control
+# maxcyc = maxcyc_times * adding_num
+  maxcyc_times 2000
+# Overlap tolerance distance
+  tolerance 1.0
+  r0 2.2
+  #retain unreacted caps
+  keep_sites 1
+
+end control
+
+#
+#begin reaction rules
+#ISOPS(cooh) + PG(oh) -> ISOPS(cooh!1).PG(oh!1)  1.0
+
+#ISOPS(cooh) + TMP(oh) -> ISOPS(cooh!1).TMP(oh!1) 1.0
+#end reaction rules
+
+begin binding
+  ISOPS 1 TMP 1 1.0
+  ISOPS 1 TMP 2 1.0
+  ISOPS 1 TMP 3 1.0
+
+  ISOPS 2 TMP 1 1.0
+  ISOPS 2 TMP 2 1.0
+  ISOPS 2 TMP 3 1.0
+end binding

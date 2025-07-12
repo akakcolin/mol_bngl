@@ -1,0 +1,9 @@
+sdf_file  seq2.sdf
+cyc_file cycle.dat
+num_mols   30
+max_attemps 2000
+cutoff_scalar 0.65
+pos_distance_cutoff 1.6
+site_distance_cutoff 1.3
+cycle_list  cycle.dat
+mollist test.ac test2.ac
