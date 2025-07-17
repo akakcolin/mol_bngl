@@ -1,6 +1,9 @@
 from rdkit import Chem
+from rdkit.Chem import rdDepictor
+from rdkit.Chem import Geometry
 import os
 import re
+import itertools
 
 import networkx as nx
 from itertools import combinations
@@ -206,6 +209,10 @@ def g2mol(G):
     }
 
 def write_lmp_topol(doc_title, topol, coords, box):
+    atoms = topol['atom_symbols']
+    bonds = topol['bonds']
+    angles = topol['angles']
+    
     with open(doc_title+'.data', 'w') as f:
         header = 'fene2lmp:'
         f.write(f'{header[-220:len(header)]}\n\n')
@@ -216,54 +223,52 @@ def write_lmp_topol(doc_title, topol, coords, box):
         f.write('0 impropers\n')
         f.write('\n')
         # write structure quantity types
-        f.write('{} atom types\n')
+        f.write('{} atom types\n'.format(len(set(atoms))))
         f.write('1 bond types\n')
         f.write('1 angle types\n')
-        f.write('0 dihedral types')
-        f.write('0 impropers types')
+        f.write('0 dihedral types\n')
+        f.write('0 impropers types\n')
 
         # write box size
-        f.write('{:>12.9f} {:^9.9f} {} {}\n'.format(box.xlo, box.xhi, 'xlo', 'xhi'))
-        f.write('{:>12.9f} {:^9.9f} {} {}\n'.format(box.ylo, box.yhi, 'ylo', 'yhi'))
-        f.write('{:>12.9f} {:^9.9f} {} {}\n'.format(box.zlo, box.zhi, 'zlo', 'zhi'))
-        if box.xy != 0 or box.xz != 0 or box.yz != 0:
-            f.write('{:>12.9f} {:^9.9f} {:^9.9f} {} {} {}\n'.format(box.xy, box.xz, box.yz, 'xy', 'xz', 'yz'))
+        f.write('{:>12.9f} {:^9.9f} {} {}\n'.format(box['xlo'], box['xhi'], 'xlo', 'xhi'))
+        f.write('{:>12.9f} {:^9.9f} {} {}\n'.format(box['ylo'], box['yhi'], 'ylo', 'yhi'))
+        f.write('{:>12.9f} {:^9.9f} {} {}\n'.format(box['zlo'], box['zhi'], 'zlo', 'zhi'))
+        if box.get('xy', 0) != 0 or box.get('xz', 0) != 0 or box.get('yz', 0) != 0:
+            f.write('{:>12.9f} {:^9.9f} {:^9.9f} {} {} {}\n'.format(
+                box.get('xy', 0), box.get('xz', 0), box.get('yz', 0), 'xy', 'xz', 'yz'))
 
+        f.write('\n')
+        f.write('\nMasses\n\n')
+        # Placeholder masses
+        atom_masses = {'TMP': 1.0, 'ISOPS': 2.0, 'PG': 3.0, 'H2O': 4.0}
+        for i, atom_type in enumerate(set(atoms), 1):
+            mass = atom_masses.get(atom_type, 1.0)
+            ID = '{t:<{s}}'.format(t=str(i), s=3)
+            comment = '{:^2} {:5}'.format('#', atom_type)
+            f.write('{} {:^12.8f} {:^2}\n'.format(ID, mass, comment))
 
-    f.write('\n')
-    f.write('\nMasses\n\n')
-    for i in masses:
-        mass = masses[i]
-        ID = '{t:<{s}}'.format(t=str(i), s=3)
-        comment = '{:^2} {:5}'.format('#', mass.type)
-        f.write('{} {:^12.8f} {:^2}\n'.format(ID, mass.coeffs, comment))
+        f.write("\nAtoms\n\n")
+        for i, (atom_type, coord) in enumerate(zip(atoms, coords), 1):
+            atomtype ='{t:<{s}}'.format(t=str(list(set(atoms)).index(atom_type) + 1), s=3)
+            comment = '{:^2} {}'.format('#', atom_type)
+            f.write('{:^6} {:^2} {:^15.9f} {:^15.9f} {:^15.9f} {:>4} {:>4} {:>4} {:^5}\n'.format(
+                i, atomtype, coord[0], coord[1], coord[2], 0, 0, 0, comment))
 
-
-    f.write("\nAtoms\n\n")
-    for i in atoms:
-        atom = atoms[i]
-        atomtype ='{t:<{s}}'.format(t=str(atom_types[i]), s=3)
-        comment = '{:^2} {}'.format('#', atom_symbols[i])
-        f.write('{:^6} {:^2} {:^15.9f} {:^15.9f} {:^15.9f} {:>4} {:>4} {:>4} {:^5}\n'.format(i, atomtype, coords[i][0], coords[i][1], coords[i][2], 0, 0, 0, comment))
-
-    f.write("\nBonds\n\n")
-    for i in bonds:
-        bond = bonds[i]
-        bond_type = 1
-        bondtype = '{t:<{s}}'.format(t=str(bond_type), s=3)
-        id1, id2 = bond
-        f.write('{:^5} {} {:^5} {:^5}\n'.format(i, bondtype, id1, id2))
+        f.write("\nBonds\n\n")
+        for i, bond in enumerate(bonds, 1):
+            bond_type = 1
+            bondtype = '{t:<{s}}'.format(t=str(bond_type), s=3)
+            id1, id2 = bond
+            f.write('{:^5} {} {:^5} {:^5}\n'.format(i, bondtype, id1, id2))
 
         # Write angles
+        f.write("\nAngles\n\n")
 
-    f.write("\nAngles\n\n")
-
-    for i in angles:
-        angle = angles[i]
-        angle_type = 1
-        angletype = '{t:<{s}}'.format(t=str(angle_type), s=3)
-        id1, id2, id3 = angle
-        f.write('{:^5} {} {:^5} {:^5} {:^5}\n'.format(i, angletype, id1, id2, id3))
+        for i, angle in enumerate(angles, 1):
+            angle_type = 1
+            angletype = '{t:<{s}}'.format(t=str(angle_type), s=3)
+            id1, id2, id3 = angle
+            f.write('{:^5} {} {:^5} {:^5} {:^5}\n'.format(i, angletype, id1, id2, id3))
 
 
 def sum_active_site(active_nodes):

@@ -1,4 +1,5 @@
 #include "define.h"
+#include "new_sdf.c"
 
 
 int **malloc_Mat2d_i(int n1, int n2){
@@ -60,10 +61,9 @@ int check_site_overlap(Sdf_Ctab_Atom *atoms, int num_atoms, double pos[3], doubl
   double r1[3];
   double dist2;
   double cutoff2= cutoff_value*cutoff_value;
-  int i;
   Sdf_Ctab_Atom *atom;
 
-   for (int i=0; i< num_atoms; i++){
+   for (int i=0; i< num_atoms; i++){ 
     atom = atoms+i;
     if(atom->symbol[0]== 'R' && atom->symbol[1] == '#') continue;
     r1[0] = atom->pos[0] - pos[0];
@@ -83,7 +83,6 @@ int check_mol_overlap(Molecule *mol, Molecule *tmp_mol, double cutoff_scalar) {
   int mn = mol->num_atoms;
   int cn = tmp_mol->num_atoms;
   int nn = mn + cn;
-  double temp;
   int mol_idz = 0;
   double cutoff;
   double rr1[3], rr2[3];
@@ -144,6 +143,7 @@ void next_pos(double *prev, double *pos, double radius, uint64_t *rng){
 
 void print_mol2xyzfile(Molecule *mol, FILE *outfile) {
   static int counter = 1;
+  (void)counter; /* suppress unused variable warning */
 
   char *fmt;
   int N = mol->num_atoms;
@@ -235,7 +235,7 @@ void add_sdf_mol(Sdf_Ctab *smol, Sdf_MetaData *result, Molecule *mol, Settings *
   double site_cutoff = set->site_cutoff;
 
   for(i=0; i<result->num_data; i++){
-    printf("result current number atoms is\n", result->ctabs[i].counter.num_atoms);
+    printf("result current number atoms is %d\n", result->ctabs[i].counter.num_atoms);
     max_total_atoms += result->ctabs[i].counter.num_atoms;
     max_total_bonds += result->ctabs[i].counter.num_bonds;
   }
